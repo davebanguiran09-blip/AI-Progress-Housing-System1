@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bungalow: {
                 id: 'bungalow',
                 name: 'Small Bungalow Concrete',
-                price: 130000,
+                price: 361000,
                 area: 45,
                 beds: 2,
                 baths: 1,
@@ -160,13 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 walls: 'Reinforced CHB Masonry',
                 roof: 'Gable Steel Trusses',
                 adaptations: ['✓ Solid strip concrete footing', '✓ Seismic columns tie-wire bracing', '✓ Hurricane strap locks'],
-                baseDays: 18, // scaled for lower budget
-                multipliers: { cement: 25, steel: 200, bricks: 600, sand: 3, lumber: 300, roof: 25, paint: 20, fixtures: 1 }
+                baseDays: 60,
+                multipliers: { cement: 120, steel: 800, bricks: 1800, sand: 15, lumber: 600, roof: 55, paint: 60, fixtures: 3 }
             },
             family: {
                 id: 'family',
                 name: 'Family House Modern Concrete',
-                price: 200000,
+                price: 647000,
                 area: 70,
                 beds: 3,
                 baths: 2,
@@ -177,13 +177,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 walls: 'Load-Bearing CHB Columns',
                 roof: 'Hip Profile GI Steel Sheets',
                 adaptations: ['✓ Heavy rebar base grid', '✓ Dual concrete partition headers', '✓ Double-truss roof anchors'],
-                baseDays: 25,
-                multipliers: { cement: 40, steel: 300, bricks: 800, sand: 5, lumber: 400, roof: 35, paint: 30, fixtures: 2 }
+                baseDays: 90,
+                multipliers: { cement: 250, steel: 1800, bricks: 3000, sand: 30, lumber: 1000, roof: 85, paint: 100, fixtures: 5 }
             },
             elevated: {
                 id: 'elevated',
                 name: 'Elevated Flood-Resistant House',
-                price: 180000,
+                price: 603000,
                 area: 60,
                 beds: 2,
                 baths: 1,
@@ -194,13 +194,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 walls: 'Lightweight Concrete Masonry',
                 roof: 'Storm-Grade Gable Steel Framing',
                 adaptations: ['✓ Elevated foundation floor stilt pillars', '✓ Anti-scour footing reinforcement', '✓ Aerodynamic roof profiling'],
-                baseDays: 22,
-                multipliers: { cement: 30, steel: 250, bricks: 500, sand: 4, lumber: 300, roof: 28, paint: 20, fixtures: 1.5, specialty: 20000 }
+                baseDays: 80,
+                multipliers: { cement: 200, steel: 1500, bricks: 2200, sand: 25, lumber: 800, roof: 75, paint: 80, fixtures: 4, specialty: 60000 }
             },
             wood_cabin: {
                 id: 'wood_cabin',
                 name: 'Native Eco-Wood Cabin',
-                price: 100000,
+                price: 301000,
                 area: 50,
                 beds: 2,
                 baths: 1,
@@ -211,13 +211,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 walls: 'Treated Hardwood / Coco Lumber framing',
                 roof: 'Light-gauge ribbed GI steel sheets',
                 adaptations: ['✓ Flexible pier timber framing', '✓ High wind-load wooden trusses', '✓ Natural cross-ventilation styling'],
-                baseDays: 15,
-                multipliers: { cement: 10, steel: 100, bricks: 200, sand: 2, lumber: 300, roof: 20, paint: 15, fixtures: 1 }
+                baseDays: 50,
+                multipliers: { cement: 40, steel: 300, bricks: 600, sand: 8, lumber: 1200, roof: 60, paint: 50, fixtures: 3 }
             },
             wood_villa: {
                 id: 'wood_villa',
                 name: 'Premium Timber Frame Villa',
-                price: 150000,
+                price: 571000,
                 area: 85,
                 beds: 4,
                 baths: 3,
@@ -228,8 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 walls: 'Solid Timber Panel Prefab framing',
                 roof: 'High-pitch heavy wood structural trusses',
                 adaptations: ['✓ Seismic solid-wood joint locks', '✓ Dual foundation anchor points', '✓ High-tensile steel truss brackets'],
-                baseDays: 20,
-                multipliers: { cement: 20, steel: 200, bricks: 400, sand: 3, lumber: 500, roof: 30, paint: 25, fixtures: 1 }
+                baseDays: 75,
+                multipliers: { cement: 80, steel: 600, bricks: 1000, sand: 12, lumber: 2000, roof: 100, paint: 120, fixtures: 6, specialty: 50000 }
             }
         }
     };
@@ -502,6 +502,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         list.forEach(h => {
+            // Calculate dynamic price based on default crew size of 2
+            const defaultDays = h.baseDays;
+            const laborCost = 2 * defaultDays * state.rates.labor;
+
+            const mult = h.multipliers;
+            let matCost = (mult.cement * state.rates.cement) +
+                          (mult.steel * state.rates.steel) +
+                          (mult.bricks * state.rates.bricks) +
+                          (mult.sand * state.rates.sand) +
+                          (mult.lumber * state.rates.wood) +
+                          (mult.roof * state.rates.roof) +
+                          (mult.paint * state.rates.paint) +
+                          (mult.fixtures * state.rates.fixtures);
+            if (h.specialty > 0) {
+                matCost += h.specialty;
+            }
+
+            const baseCost = matCost + laborCost;
+            const permits = Math.round(baseCost * 0.05);
+            const contingency = Math.round(baseCost * 0.07);
+            const calculatedPrice = baseCost + permits + contingency;
+
+            // Set dynamic price
+            h.price = calculatedPrice;
+
             const card = document.createElement('div');
             card.className = 'ai-house-card';
             card.style.cursor = 'pointer';
@@ -663,13 +688,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const totalMaterialsCost = matItems.reduce((sum, item) => sum + item.cost, 0);
 
+        function calculatedBasePrice() {
+            return totalMaterialsCost + totalLaborCost;
+        }
+
         // Permits & Contingency estimations (12% standard capstone margin)
         const permitsCost = Math.round(calculatedBasePrice() * 0.05);
         const contingencyCost = Math.round(calculatedBasePrice() * 0.07);
-
-        function calculatedBasePrice() {
-            return house.price;
-        }
 
         // Final aggregated complete house budget
         const finalCalculatedCost = totalMaterialsCost + totalLaborCost + permitsCost + contingencyCost;
@@ -744,9 +769,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Capture dynamic values from estimator
         const daysRequired = calculateDuration(house.baseDays, state.crewSize);
         const totalLaborCost = state.crewSize * daysRequired * state.rates.labor;
-        const permitsCost = Math.round(house.price * 0.05);
-        const contingencyCost = Math.round(house.price * 0.07);
-
         // Re-compile item rows to copy to printed page
         const mult = house.multipliers;
         const matItems = [
@@ -768,7 +790,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const totalMaterialsCost = matItems.reduce((sum, item) => sum + item.cost, 0);
-        const finalTotalPriceVal = totalMaterialsCost + totalLaborCost + permitsCost + contingencyCost;
+        const baseCost = totalMaterialsCost + totalLaborCost;
+        const permitsCost = Math.round(baseCost * 0.05);
+        const contingencyCost = Math.round(baseCost * 0.07);
+        const finalTotalPriceVal = baseCost + permitsCost + contingencyCost;
 
         // Hydrate Phase 7 Printable summary elements
         if (printProvince) printProvince.innerText = state.province;
